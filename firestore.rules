@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// HandsUp: Firestore security rules
+// Paste into Firebase console > Firestore Database > Rules, then Publish.
+// Put every trainer's sign-in email in the list below.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isTrainer() {
+      return request.auth != null
+        && request.auth.token.email in ['your-email@example.com'];
+    }
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Quiz questions and test numbers: trainers only
+    match /quizzes/{quizId} {
+      allow read, write: if isTrainer();
+    }
+
+    // Correct answers: trainers only, never visible to students
+    match /keys/{quizId} {
+      allow read, write: if isTrainer();
+    }
+
+    // Live session state: everyone reads it, only trainers change it
+    match /sessions/{code} {
+      allow read: if signedIn();
+      allow write: if isTrainer();
+    }
+
+    // Each student's join record and answers: they write only their own
+    match /players/{uid} {
+      allow read: if isTrainer() || (signedIn() && request.auth.uid == uid);
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 24
+        && request.resource.data.code is string;
+      allow delete: if isTrainer();
+    }
+  }
+}
