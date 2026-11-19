@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HandsUp: live classroom quizzes</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✋</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#F2F4FB; --surface:#FFFFFF; --sunk:#E8EBF6; --ink:#161A33; --muted:#565C7A; --line:#D7DCEC;
+  --brand:#3446E0; --brand-ink:#FFFFFF; --brand-soft:#E3E7FF;
+  --ok:#0B7D47; --ok-soft:#DDF4E8; --bad:#B8283A; --bad-soft:#FBE3E6;
+  --o0:#3446E0; --o1:#B85200; --o2:#00775F; --o3:#B8205A; --o4:#6F35C9; --o5:#5F6B00;
+  --tile:#161A33; --tile-ink:#FFFFFF;
+  --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1124; --surface:#171B35; --sunk:#10142A; --ink:#ECEEFA; --muted:#A4A9C8; --line:#2B3156;
+    --brand:#8492FF; --brand-ink:#0E1124; --brand-soft:#232A5C;
+    --ok:#4CD38E; --ok-soft:#123A28; --bad:#FF7C8C; --bad-soft:#40161E;
+    --o0:#4A5BF0; --o1:#C35F0C; --o2:#078A6F; --o3:#C42E66; --o4:#7C45D8; --o5:#6E7B0A;
+    --tile:#ECEEFA; --tile-ink:#0E1124;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1124; --surface:#171B35; --sunk:#10142A; --ink:#ECEEFA; --muted:#A4A9C8; --line:#2B3156;
+  --brand:#8492FF; --brand-ink:#0E1124; --brand-soft:#232A5C;
+  --ok:#4CD38E; --ok-soft:#123A28; --bad:#FF7C8C; --bad-soft:#40161E;
+  --o0:#4A5BF0; --o1:#C35F0C; --o2:#078A6F; --o3:#C42E66; --o4:#7C45D8; --o5:#6E7B0A;
+  --tile:#ECEEFA; --tile-ink:#0E1124;
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%; scroll-padding-top: env(safe-area-inset-top, 0px)}
+body{margin:0; min-height:100%; background:var(--bg); color:var(--ink); font-family:var(--body); font-size:17px; line-height:1.5; -webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit; color:inherit}
+:focus-visible{outline:3px solid var(--brand); outline-offset:2px}
+h1,h2,h3{font-family:var(--display); line-height:1.1; margin:0; letter-spacing:-0.01em}
+p{margin:0}
+img{max-width:100%}
+
+.bar{display:flex; align-items:center; gap:16px; padding:14px clamp(16px,4vw,40px); border-bottom:1px solid var(--line); background:var(--surface)}
+.logo{display:flex; align-items:center; gap:10px; font-family:var(--display); font-weight:800; font-size:22px; letter-spacing:-0.02em}
+.logo-mark{width:30px; height:30px; border-radius:9px; background:var(--brand); color:var(--brand-ink); display:grid; place-items:center; font-size:17px}
+.bar .spacer{flex:1}
+.acct{max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+@media (max-width:640px){ .acct{display:none} }
+.wrap{max-width:1080px; margin:0 auto; padding:clamp(20px,4vw,40px) clamp(16px,4vw,40px) 64px}
+.narrow{max-width:480px}
+
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; border:1.5px solid var(--line); background:var(--surface); border-radius:12px; padding:10px 16px; font-weight:700; cursor:pointer; min-height:44px; text-decoration:none}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--brand); border-color:var(--brand); color:var(--brand-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.big{font-size:19px; padding:14px 24px; min-height:56px; border-radius:14px}
+.btn.ghost{background:transparent; border-color:transparent; color:var(--muted)}
+.btn.ghost:hover{color:var(--ink); border-color:var(--line)}
+.btn.danger{color:var(--bad)}
+.btn[disabled]{opacity:.45; cursor:not-allowed}
+.link{background:none; border:0; padding:0; color:var(--brand); font-weight:700; cursor:pointer; text-decoration:underline; text-underline-offset:3px}
+
+.field{display:flex; flex-direction:column; gap:6px}
+.field label{font-weight:700; font-size:15px}
+.input{border:1.5px solid var(--line); background:var(--surface); border-radius:12px; padding:11px 14px; min-height:46px; width:100%}
+.input:focus{border-color:var(--brand); outline:none; box-shadow:0 0 0 3px var(--brand-soft)}
+textarea.input{resize:vertical; min-height:92px; line-height:1.4}
+.hint{color:var(--muted); font-size:15px}
+.err{color:var(--bad); font-weight:700; font-size:15px}
+.demo-note{background:var(--brand-soft); color:var(--ink); font-size:15px; padding:10px clamp(16px,4vw,40px)}
+
+/* Trainer home */
+.home-head{display:flex; flex-wrap:wrap; align-items:end; justify-content:space-between; gap:16px; margin-bottom:28px}
+.home-head h1{font-size:clamp(30px,4vw,42px); font-weight:800}
+.home-head p{color:var(--muted); margin-top:6px}
+.quiz-table{background:var(--surface); border:1px solid var(--line); border-radius:16px; overflow:hidden}
+.quiz-row{display:grid; grid-template-columns: 1fr auto auto; gap:16px; align-items:center; padding:16px 20px; border-top:1px solid var(--line)}
+.quiz-row:first-child{border-top:0}
+.quiz-title{font-weight:700; font-size:18px}
+.quiz-meta{color:var(--muted); font-size:15px}
+.code-chip{font-family:var(--display); font-weight:700; font-size:17px; letter-spacing:.08em; background:var(--sunk); padding:4px 10px; border-radius:8px; font-variant-numeric:tabular-nums}
+.live-dot{display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--ok); margin-right:6px; vertical-align:1px}
+.row-actions{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+.empty{padding:48px 24px; text-align:center; background:var(--surface); border:1.5px dashed var(--line); border-radius:16px}
+.empty h2{font-size:24px; margin-bottom:8px}
+.empty p{color:var(--muted); margin-bottom:20px}
+@media (max-width:680px){
+  .quiz-row{grid-template-columns:1fr; gap:10px}
+  .row-actions{justify-content:flex-start}
+}
+
+/* Editor */
+.editor{display:grid; grid-template-columns: 260px 1fr; gap:24px; align-items:start}
+.editor-top{display:grid; grid-template-columns: 1fr 220px; gap:16px; margin-bottom:24px}
+.code-edit{display:flex; gap:8px}
+.code-edit .input{font-family:var(--display); font-weight:700; letter-spacing:.12em; font-size:19px}
+.qlist{display:flex; flex-direction:column; gap:6px; position:sticky; top:16px}
+.qitem{display:grid; grid-template-columns:28px 1fr; gap:10px; align-items:start; text-align:left; border:1.5px solid transparent; background:transparent; border-radius:12px; padding:10px 12px; cursor:pointer}
+.qitem:hover{background:var(--surface)}
+.qitem.on{background:var(--surface); border-color:var(--brand)}
+.qitem .n{font-family:var(--display); font-weight:800; color:var(--muted); font-variant-numeric:tabular-nums}
+.qitem .t{font-size:15px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical}
+.qitem .t.blank{color:var(--muted); font-style:italic}
+.qitem.bad .n{color:var(--bad)}
+.qpanel{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:clamp(18px,3vw,28px); display:flex; flex-direction:column; gap:20px}
+.qpanel-head{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap}
+.qpanel-head h2{font-size:22px}
+.opts{display:flex; flex-direction:column; gap:10px}
+.opt-edit{display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; border:1.5px solid var(--line); border-radius:14px; padding:6px 6px 6px 8px}
+.opt-edit.correct{border-color:var(--ok); background:var(--ok-soft)}
+.opt-edit .input{border:0; background:transparent; min-height:40px; padding:6px 4px}
+.opt-edit .input:focus{box-shadow:none}
+.mark{display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:14px; color:var(--muted); padding:4px 8px; border-radius:10px}
+.mark input{position:absolute; opacity:0; pointer-events:none}
+.mark .letter{width:34px; height:34px; border-radius:10px; display:grid; place-items:center; color:#fff; font-family:var(--display); font-weight:800}
+.opt-edit.correct .mark{color:var(--ok)}
+.mark .tick{display:none}
+.opt-edit.correct .mark .tick{display:inline}
+.mark:has(input:focus-visible){outline:3px solid var(--brand)}
+.icon-btn{border:0; background:transparent; width:40px; height:40px; border-radius:10px; cursor:pointer; color:var(--muted); font-size:20px}
+.icon-btn:hover{background:var(--sunk); color:var(--ink)}
+.settings{display:flex; flex-wrap:wrap; gap:16px; align-items:end}
+.settings .field{min-width:160px}
+.editor-foot{display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:24px; padding-top:20px; border-top:1px solid var(--line)}
+@media (max-width:820px){
+  .editor{grid-template-columns:1fr}
+  .qlist{position:static; flex-direction:row; overflow-x:auto; padding-bottom:6px}
+  .qitem{min-width:150px}
+  .editor-top{grid-template-columns:1fr}
+}
+
+/* Option colours */
+.c0{background:var(--o0)} .c1{background:var(--o1)} .c2{background:var(--o2)}
+.c3{background:var(--o3)} .c4{background:var(--o4)} .c5{background:var(--o5)}
+
+/* Host / presentation */
+.stage{min-height:calc(100vh - 70px); display:flex; flex-direction:column}
+.stage-bar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:12px clamp(16px,4vw,40px); border-bottom:1px solid var(--line); background:var(--surface)}
+.stage-bar .title{font-weight:700}
+.stage-bar .spacer{flex:1}
+.stage-body{flex:1; padding:clamp(20px,4vw,48px); display:flex; flex-direction:column; gap:28px; max-width:1240px; width:100%; margin:0 auto}
+.stage-actions{display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end; align-items:center}
+
+.lobby{display:grid; grid-template-columns: 1.3fr 1fr; gap:clamp(24px,4vw,56px); align-items:center}
+.lobby h1{font-size:clamp(22px,2.6vw,30px); font-weight:700; margin-bottom:18px}
+.tiles{display:flex; gap:clamp(6px,1vw,12px); flex-wrap:nowrap}
+.tile{position:relative; flex:1 1 0; max-width:110px; aspect-ratio: 3/4; background:var(--tile); color:var(--tile-ink); border-radius:clamp(10px,1.4vw,18px); display:grid; place-items:center; font-family:var(--display); font-weight:800; font-size:clamp(44px,8vw,104px); font-variant-numeric:tabular-nums; line-height:1}
+.tile::after{content:""; position:absolute; left:0; right:0; top:50%; height:2px; background:var(--bg); opacity:.55}
+.join-how{margin-top:22px; color:var(--muted); font-size:clamp(16px,1.6vw,19px)}
+.join-how strong{color:var(--ink)}
+.qr-box{background:#FFFFFF; border-radius:22px; padding:18px; display:grid; place-items:center; justify-self:center; border:1px solid var(--line)}
+.qr-box img, .qr-box canvas{display:block; width:min(260px,60vw)!important; height:auto!important}
+.qr-cap{text-align:center; color:var(--muted); font-size:15px; margin-top:10px}
+.people{display:flex; flex-wrap:wrap; gap:8px}
+.person{background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:6px 14px; font-weight:700; animation:pop .35s ease-out}
+@keyframes pop{from{transform:scale(.6); opacity:0} to{transform:scale(1); opacity:1}}
+.count{font-family:var(--display); font-weight:800; font-size:20px}
+@media (max-width:820px){ .lobby{grid-template-columns:1fr} }
+
+.q-head{display:flex; justify-content:space-between; gap:20px; align-items:flex-start}
+.q-num{color:var(--muted); font-weight:700; margin-bottom:8px}
+.q-text{font-size:clamp(26px,3.6vw,44px); font-weight:700}
+.timer{flex:none; width:96px; height:96px; border-radius:50%; display:grid; place-items:center; font-family:var(--display); font-weight:800; font-size:34px; font-variant-numeric:tabular-nums; background:conic-gradient(var(--brand) calc(var(--p,1)*360deg), var(--sunk) 0)}
+.timer span{width:76px; height:76px; border-radius:50%; background:var(--bg); display:grid; place-items:center}
+.timer.low{background:conic-gradient(var(--bad) calc(var(--p,1)*360deg), var(--sunk) 0)}
+.host-opts{display:grid; grid-template-columns:repeat(2,1fr); gap:14px}
+.host-opt{display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; color:#fff; border-radius:16px; padding:16px 20px; font-size:clamp(18px,2vw,24px); font-weight:700; position:relative; overflow:hidden}
+.host-opt .l{font-family:var(--display); font-weight:800; width:40px; height:40px; border-radius:10px; background:rgba(255,255,255,.2); display:grid; place-items:center}
+.answered{font-size:clamp(18px,2vw,22px)}
+.answered b{font-family:var(--display); font-size:1.4em}
+@media (max-width:640px){ .host-opts{grid-template-columns:1fr} .timer{width:72px;height:72px;font-size:26px} .timer span{width:56px;height:56px} }
+
+/* Results bars */
+.bars{display:flex; flex-direction:column; gap:14px}
+.bar-row{display:grid; grid-template-columns: minmax(140px,34%) 1fr 64px; gap:16px; align-items:center}
+.bar-label{display:flex; align-items:center; gap:10px; font-weight:700; font-size:clamp(16px,1.7vw,20px)}
+.bar-label .l{flex:none; width:34px; height:34px; border-radius:9px; display:grid; place-items:center; color:#fff; font-family:var(--display); font-weight:800}
+.bar-track{height:40px; background:var(--sunk); border-radius:10px; overflow:hidden}
+.bar-fill{height:100%; border-radius:10px; transition:width .9s cubic-bezier(.2,.8,.2,1); opacity:.35}
+.bar-row.right .bar-fill{opacity:1}
+.bar-row.right .bar-label{color:var(--ok)}
+.bar-n{font-family:var(--display); font-weight:800; font-size:24px; text-align:right; font-variant-numeric:tabular-nums}
+.right-tag{color:var(--ok); font-size:15px; font-weight:700}
+@media (max-width:640px){ .bar-row{grid-template-columns:1fr 48px} .bar-track{grid-column:1/-1; grid-row:2} }
+
+/* Leaderboard */
+.board{display:flex; flex-direction:column; gap:10px; max-width:760px; width:100%; margin:0 auto}
+.board h1{font-size:clamp(28px,3.4vw,40px); font-weight:800; text-align:center; margin-bottom:12px}
+.rank-row{display:grid; grid-template-columns: 56px 1fr auto; gap:14px; align-items:center; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px 18px; font-size:clamp(17px,1.8vw,21px)}
+.rank-row .r{font-family:var(--display); font-weight:800; font-size:1.3em; color:var(--muted); font-variant-numeric:tabular-nums}
+.rank-row .nm{font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.rank-row .sc{font-family:var(--display); font-weight:800; font-variant-numeric:tabular-nums}
+.rank-row.me{border-color:var(--brand); box-shadow:0 0 0 2px var(--brand)}
+.rank-row.top1 .r{color:#C99400}
+.podium{display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:14px; align-items:end; max-width:760px; margin:0 auto 18px; width:100%}
+.pod{text-align:center; display:flex; flex-direction:column; gap:8px; align-items:center}
+.pod .nm{font-weight:700; font-size:clamp(16px,1.8vw,22px); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.pod .sc{color:var(--muted); font-variant-numeric:tabular-nums}
+.pod .block{width:100%; border-radius:14px 14px 4px 4px; display:grid; place-items:center; font-family:var(--display); font-weight:800; font-size:clamp(34px,5vw,56px); color:#fff}
+.pod.p1 .block{height:170px; background:var(--o0)}
+.pod.p2 .block{height:120px; background:var(--o2)}
+.pod.p3 .block{height:90px; background:var(--o1)}
+
+/* Student */
+.stu{min-height:calc(100vh - 70px); display:flex; flex-direction:column}
+.stu-body{flex:1; width:100%; max-width:560px; margin:0 auto; padding:24px 18px 40px; display:flex; flex-direction:column; gap:20px}
+.stu-center{flex:1; display:flex; flex-direction:column; justify-content:center; gap:20px}
+.stu h1{font-size:clamp(28px,7vw,38px); font-weight:800}
+.stu .lead{color:var(--muted); font-size:18px}
+.code-input{font-family:var(--display); font-weight:800; font-size:34px; letter-spacing:.3em; text-align:center; padding:12px; min-height:70px}
+.stu-q-meta{display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-weight:700}
+.stu-timer{font-family:var(--display); font-weight:800; font-size:22px; color:var(--ink); font-variant-numeric:tabular-nums; background:var(--sunk); border-radius:10px; padding:2px 12px}
+.stu-timer.low{color:var(--bad)}
+.stu-q{font-size:clamp(22px,5.4vw,28px); font-weight:700}
+.stu-opts{display:flex; flex-direction:column; gap:12px}
+.stu-opt{display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:center; text-align:left; border:0; border-radius:16px; padding:16px 18px; color:#fff; font-size:19px; font-weight:700; cursor:pointer; min-height:66px}
+.stu-opt .l{font-family:var(--display); font-weight:800; width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,.2); display:grid; place-items:center}
+.stu-opt:active{transform:scale(.98)}
+.stu-opt[disabled]{cursor:default}
+.stu-opt.dim{opacity:.3}
+.stu-opt.picked{outline:4px solid var(--ink); outline-offset:3px}
+.status-card{background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:28px 22px; text-align:center; display:flex; flex-direction:column; gap:10px; align-items:center}
+.status-card .big{font-family:var(--display); font-weight:800; font-size:clamp(30px,8vw,44px); line-height:1.05}
+.status-card.ok{background:var(--ok-soft); border-color:var(--ok)}
+.status-card.ok .big{color:var(--ok)}
+.status-card.bad{background:var(--bad-soft); border-color:var(--bad)}
+.status-card.bad .big{color:var(--bad)}
+.stats{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.stat{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px; text-align:center}
+.stat b{display:block; font-family:var(--display); font-weight:800; font-size:30px; font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted); font-size:15px}
+.wave{font-size:56px; line-height:1}
+.spinner{width:28px; height:28px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--brand); animation:spin 1s linear infinite; margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.center-msg{min-height:60vh; display:grid; place-items:center; text-align:center; padding:24px}
+
+.toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:12px 18px; border-radius:12px; font-weight:700; z-index:20; max-width:90vw}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important; transition:none!important}
+}
+</style>
+</head>
+<body>
+<div id="app"><div class="center-msg"><div><div class="spinner"></div><p class="hint" style="margin-top:14px">Loading HandsUp…</p></div></div></div>
+<div id="toast" class="toast" hidden></div>
+
+<script type="module">
+/* ============================================================
+   HandsUp: live classroom quizzes
+   Trainer: create quizzes, mark correct answers, assign a test number,
+            run a live session and unlock questions one at a time.
+   Student: join by QR or test number, answer each unlocked question,
+            see results and the leaderboard.
+   Data lives in Firebase (Firestore + Auth). Fill in FIREBASE_CONFIG
+   below. Until you do, the page runs as a single-browser demo.
+   ============================================================ */
+/* 1. Paste your Firebase web app config here
+      (Firebase console > Project settings > Your apps > Web app > Config). */
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
+const LETTERS = ["A","B","C","D","E","F"];
+const TIMES = [10,20,30,45,60,90,120];
+
+const S = {
+  db:null, uid:null, canHost:false, demo:false, downloads:null, auth:null, authMod:null, trainerEmail:"", signinErr:"",
+  view:"loading", subs:[], ticker:null,
+  quizzes:[], sessions:{}, quizzesLoaded:false,
+  draft:null, draftErr:"",
+  host:null,          // live session being run by the trainer
+  st:null,            // student state
+  forceStudent:false
+};
+
+/* ---------- helpers ---------- */
+const $app = document.getElementById("app");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rid = (n=12) => { const a="abcdefghijklmnopqrstuvwxyz0123456789"; let s=""; const r=crypto.getRandomValues(new Uint8Array(n)); for(const x of r) s+=a[x%a.length]; return s; };
+const newCode = () => String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
+const clone = o => JSON.parse(JSON.stringify(o));
+const ordinal = n => { const s=["th","st","nd","rd"], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); };
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true, 3200); }
+function clearSubs(){ S.subs.forEach(u=>{ try{u()}catch(e){} }); S.subs=[]; if(S.ticker){ clearInterval(S.ticker); S.ticker=null; } }
+function clearHash(){ try{ if(location.hash) history.replaceState(null,"",location.pathname+location.search); }catch(e){} }
+function joinUrl(code){ return location.origin + location.pathname + "#join-" + code; }
+
+/* ---------- single-browser demo store (same API subset as db) ---------- */
+function makeLocalDb(){
+  const KEY="handsup-demo-v1";
+  let store={};
+  const load=()=>{ try{ store=JSON.parse(localStorage.getItem(KEY)||"{}"); }catch(e){ } };
+  load();
+  const listeners=new Set();
+  const notify=()=>listeners.forEach(fn=>{ try{fn()}catch(e){console.error(e)} });
+  const commit=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){} setTimeout(notify,0); };
+  window.addEventListener("storage", e=>{ if(e.key===KEY){ load(); notify(); } });
+  const merge=(t,s)=>{ for(const k in s){ const v=s[k]; if(v&&typeof v==="object"&&!Array.isArray(v)&&t[k]&&typeof t[k]==="object"&&!Array.isArray(t[k])) merge(t[k],v); else t[k]=clone(v);} return t; };
+  const snap=p=>{ const d=store[p]; return {id:p.split("/").pop(), exists:!!d, data:()=>d?clone(d):undefined, metadata:{fromCache:false,hasPendingWrites:false}}; };
+  const docRef=p=>({
+    id:p.split("/").pop(), path:p,
+    get:async()=>snap(p),
+    set:async d=>{ store[p]=clone(d); commit(); },
+    update:async d=>{ if(!store[p]) throw {code:"invalid_argument",message:"Document does not exist"}; merge(store[p],d); commit(); },
+    delete:async()=>{ delete store[p]; commit(); },
+    onSnapshot:(next)=>{ let last; const fn=()=>{ const j=JSON.stringify(store[p]??null); if(j!==last){ last=j; next(snap(p)); } }; listeners.add(fn); setTimeout(fn,0); return ()=>listeners.delete(fn); }
+  });
+  const query=(col,filters)=>{
+    const run=()=>{ const pre=col+"/"; const docs=Object.keys(store).filter(k=>k.startsWith(pre)&&!k.slice(pre.length).includes("/")).sort().map(snap)
+      .filter(s=>filters.every(([f,op,v])=>op==="=="?s.data()[f]===v:true));
+      return {docs,size:docs.length,empty:!docs.length,docChanges:()=>[],metadata:{fromCache:false,hasPendingWrites:false}}; };
+    return { where:(f,op,v)=>query(col,[...filters,[f,op,v]]), get:async()=>run(),
+      onSnapshot:(next)=>{ let last; const fn=()=>{ const r=run(); const j=JSON.stringify(r.docs.map(d=>[d.id,d.data()])); if(j!==last){ last=j; next(r); } }; listeners.add(fn); setTimeout(fn,0); return ()=>listeners.delete(fn); } };
+  };
+  return { doc:docRef, collection:col=>Object.assign(query(col,[]),{path:col, doc:id=>docRef(col+"/"+(id||rid()))}) };
+}
+
+/* ---------- Firestore adapter (same API the app uses everywhere) ---------- */
+function makeFirestoreDb(F, fs){
+  const wd=s=>({id:s.id, exists:s.exists(), data:()=>s.data(), metadata:s.metadata});
+  const wq=q=>({docs:q.docs.map(wd), size:q.size, empty:q.empty, metadata:q.metadata});
+  const docRef=path=>{ const r=F.doc(fs,path); return {
+    id:r.id, path,
+    get:async()=>wd(await F.getDoc(r)),
+    set:d=>F.setDoc(r,d),
+    update:d=>F.setDoc(r,d,{merge:true}),   // deep-merges nested maps like answers.{i}
+    delete:()=>F.deleteDoc(r),
+    onSnapshot:(next,err)=>F.onSnapshot(r,s=>next(wd(s)),err)
+  }; };
+  const query=(col,filters)=>{
+    const build=()=>F.query(F.collection(fs,col), ...filters.map(([a,o,v])=>F.where(a,o,v)));
+    return { where:(a,o,v)=>query(col,[...filters,[a,o,v]]),
+      get:async()=>wq(await F.getDocs(build())),
+      onSnapshot:(next,err)=>F.onSnapshot(build(),s=>next(wq(s)),err) };
+  };
+  return { doc:docRef, collection:col=>Object.assign(query(col,[]),{path:col, doc:id=>docRef(col+"/"+(id||rid()))}) };
+}
+function fatal(title,msg){ $app.innerHTML=shell(`<div class="center-msg"><div style="max-width:520px"><h1 style="font-size:28px;margin-bottom:10px">${esc(title)}</h1><p class="hint">${esc(msg)}</p></div></div>`); }
+
+/* ---------- boot ---------- */
+async function init(){
+  if(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId){
+    let appMod, fsMod, authMod;
+    try{
+      [appMod, fsMod, authMod] = await Promise.all([import(FB+"firebase-app.js"), import(FB+"firebase-firestore.js"), import(FB+"firebase-auth.js")]);
+    }catch(e){ fatal("Couldn't load Firebase","Check your internet connection and reload the page."); return; }
+    const app=appMod.initializeApp(FIREBASE_CONFIG);
+    S.db=makeFirestoreDb(fsMod, fsMod.getFirestore(app));
+    S.authMod=authMod; S.auth=authMod.getAuth(app);
+    authMod.onAuthStateChanged(S.auth, user=>{
+      if(!user){
+        authMod.signInAnonymously(S.auth).catch(e=>fatal("Couldn't connect","Anonymous sign-in failed ("+(e.code||"error")+"). In the Firebase console, turn on Authentication > Sign-in method > Anonymous."));
+        return;
+      }
+      S.uid=user.uid; S.canHost=!user.isAnonymous; S.trainerEmail=user.email||"";
+      route();
+    });
+    return;
+  }
+  {
+    S.demo=true;
+    S.db=makeLocalDb();
+    let id=null; try{ id=sessionStorage.getItem("handsup-uid"); if(!id){ id="u_"+rid(10); sessionStorage.setItem("handsup-uid",id); } }catch(e){ id="u_"+rid(10); }
+    S.uid=id; S.canHost=true;
+  }
+  route();
+}
+function route(){
+  if(location.hash==="#trainer" && !S.canHost){ openSignin(); return; }
+  const m=location.hash.match(/^#join-(\d{6})$/);
+  if(m){ openStudent(m[1]); return; }
+  if(S.canHost && !S.forceStudent) openTrainerHome(); else openStudentEntry();
+}
+window.addEventListener("hashchange", route);
+
+/* ---------- shell ---------- */
+function shell(inner, opts={}){
+  const right = opts.right || "";
+  const demo = S.demo ? `<div class="demo-note">Demo mode: Firebase isn't set up yet, so data stays in this browser. Open a second tab to try the student side. Add your Firebase config to index.html for live sync across devices.</div>` : "";
+  const acct = (!S.demo && S.canHost) ? `<span class="hint acct">${esc(S.trainerEmail)}</span><button class="btn ghost" data-act="sign-out">Sign out</button>` : "";
+  return `${demo}<header class="bar"><div class="logo"><span class="logo-mark" aria-hidden="true">✋</span>HandsUp</div><div class="spacer"></div>${right}${acct}</header>${inner}`;
+}
+function render(){
+  const v=S.view;
+  if(v==="home") $app.innerHTML=viewHome();
+  else if(v==="edit") $app.innerHTML=viewEditor();
+  else if(v==="host") { $app.innerHTML=viewHost(); afterHostRender(); }
+  else if(v==="student-entry") $app.innerHTML=viewStudentEntry();
+  else if(v==="student") $app.innerHTML=viewStudent();
+  else if(v==="signin") $app.innerHTML=viewSignin();
+  tick();
+}
+
+/* ============================================================
+   TRAINER: home
+   ============================================================ */
+function openTrainerHome(){
+  clearSubs(); S.view="home"; S.host=null; S.st=null; S.forceStudent=false;
+  render();
+  S.subs.push(S.db.collection("quizzes").onSnapshot(snap=>{
+    S.quizzes=snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+    S.quizzesLoaded=true; if(S.view==="home") render();
+  }, e=>{ S.quizzesLoaded=true; toast("Couldn't load quizzes ("+e.code+")."); render(); }));
+  S.subs.push(S.db.collection("sessions").onSnapshot(snap=>{
+    S.sessions={}; snap.docs.forEach(d=>S.sessions[d.id]=d.data());
+    if(S.view==="home") render();
+  }, ()=>{}));
+}
+function viewHome(){
+  const right=`<button class="btn ghost" data-act="as-student">Join as a student</button>`;
+  let body;
+  if(!S.quizzesLoaded) body=`<div class="center-msg"><div class="spinner"></div></div>`;
+  else if(!S.quizzes.length) body=`<div class="empty"><h2>Create your first quiz</h2><p>Write your questions, mark the right answers and get a test number students can join with.</p><button class="btn primary big" data-act="new-quiz">Create a quiz</button></div>`;
+  else body=`<div class="quiz-table">${S.quizzes.map(q=>{
+      const s=S.sessions[q.code]; const live=s && s.quizId===q.id && s.status!=="ended";
+      const n=(q.questions||[]).length;
+      return `<div class="quiz-row">
+        <div><div class="quiz-title">${esc(q.title||"Untitled quiz")}</div>
+          <div class="quiz-meta">${live?`<span class="live-dot"></span>Live now · `:""}${n} question${n===1?"":"s"}</div></div>
+        <span class="code-chip" title="Test number">${esc(q.code)}</span>
+        <div class="row-actions">
+          <button class="btn ghost" data-act="edit-quiz" data-id="${q.id}">Edit</button>
+          ${live?`<button class="btn" data-act="host-quiz" data-id="${q.id}" data-mode="restart">Restart</button><button class="btn primary" data-act="host-quiz" data-id="${q.id}" data-mode="resume">Resume live session</button>`
+                :`<button class="btn primary" data-act="host-quiz" data-id="${q.id}">Start live session</button>`}
+        </div></div>`; }).join("")}</div>`;
+  return shell(`<main class="wrap">
+    <div class="home-head"><div><h1>Your quizzes</h1><p>Start a live session, share the test number, and unlock questions one at a time.</p></div>
+    ${S.quizzes.length?`<button class="btn primary" data-act="new-quiz">Create a quiz</button>`:""}</div>
+    ${body}</main>`, {right});
+}
+
+/* ============================================================
+   TRAINER: editor
+   ============================================================ */
+const blankQ = () => ({text:"", options:["","","",""], correct:null, time:20});
+function newDraft(){ S.draft={id:null, title:"", code:newCode(), questions:[blankQ()], sel:0}; S.draftErr=""; S.view="edit"; clearSubs(); render(); }
+async function editQuiz(id){
+  const [q,k]=await Promise.all([S.db.doc("quizzes/"+id).get(), S.db.doc("keys/"+id).get()]);
+  if(!q.exists){ toast("That quiz no longer exists."); return; }
+  const d=q.data(), ans=(k.exists?k.data().answers:[])||[];
+  clearSubs();
+  S.draft={id, title:d.title||"", code:d.code||newCode(), sel:0,
+    questions:(d.questions||[]).map((x,i)=>({text:x.text, options:[...x.options], correct:Number.isInteger(ans[i])?ans[i]:null, time:x.time||20}))};
+  if(!S.draft.questions.length) S.draft.questions=[blankQ()];
+  S.draftErr=""; S.view="edit"; render();
+}
+function qProblem(q){
+  if(!q.text.trim()) return "Add the question text.";
+  const filled=q.options.filter(o=>o.trim()).length;
+  if(filled<2) return "Add at least two answer options.";
+  if(q.correct===null || !q.options[q.correct] || !q.options[q.correct].trim()) return "Mark the correct answer.";
+  return "";
+}
+function viewEditor(){
+  const d=S.draft, q=d.questions[d.sel];
+  const list=d.questions.map((x,i)=>`<button class="qitem ${i===d.sel?"on":""} ${S.draftErr&&qProblem(x)?"bad":""}" data-act="sel-q" data-i="${i}">
+      <span class="n">${i+1}</span><span class="t ${x.text.trim()?"":"blank"}">${x.text.trim()?esc(x.text):"New question"}</span></button>`).join("");
+  const opts=q.options.map((o,i)=>`<div class="opt-edit ${q.correct===i?"correct":""}">
+      <label class="mark" title="Mark as the correct answer"><input type="radio" name="correct" data-act="set-correct" data-i="${i}" ${q.correct===i?"checked":""}><span class="letter c${i}">${LETTERS[i]}</span><span class="tick">Correct</span></label>
+      <input class="input" data-field="opt" data-i="${i}" value="${esc(o)}" placeholder="Answer ${LETTERS[i]}" maxlength="120" aria-label="Answer ${LETTERS[i]}">
+      <button class="icon-btn" data-act="del-opt" data-i="${i}" ${q.options.length<=2?"disabled":""} aria-label="Remove answer ${LETTERS[i]}">×</button></div>`).join("");
+  const prob=S.draftErr?qProblem(q):"";
+  return shell(`<main class="wrap">
+    <div class="home-head"><div><h1>${d.id?"Edit quiz":"New quiz"}</h1><p>Click a letter to mark the correct answer. Students only see it after you reveal it.</p></div></div>
+    <div class="editor-top">
+      <div class="field"><label for="qt">Quiz title</label><input id="qt" class="input" data-field="title" value="${esc(d.title)}" placeholder="e.g. Week 3: Python loops" maxlength="80"></div>
+      <div class="field"><label for="qc">Test number</label><div class="code-edit"><input id="qc" class="input" data-field="code" value="${esc(d.code)}" inputmode="numeric" maxlength="6"><button class="icon-btn" data-act="regen-code" title="Generate a new number" aria-label="Generate a new test number">↻</button></div></div>
+    </div>
+    <div class="editor">
+      <nav class="qlist" aria-label="Questions">${list}<button class="btn ghost" data-act="add-q">+ Add question</button></nav>
+      <section class="qpanel">
+        <div class="qpanel-head"><h2>Question ${d.sel+1} of ${d.questions.length}</h2>
+          <div class="row-actions">
+            <button class="icon-btn" data-act="move-q" data-dir="-1" ${d.sel===0?"disabled":""} aria-label="Move question up">↑</button>
+            <button class="icon-btn" data-act="move-q" data-dir="1" ${d.sel===d.questions.length-1?"disabled":""} aria-label="Move question down">↓</button>
+            <button class="btn ghost danger" data-act="del-q" ${d.questions.length<=1?"disabled":""}>Delete question</button>
+          </div></div>
+        <div class="field"><label for="qq">Question</label><textarea id="qq" class="input" data-field="qtext" placeholder="Type your question" maxlength="300">${esc(q.text)}</textarea></div>
+        <div class="field"><label>Answers</label><div class="opts">${opts}</div>
+          ${q.options.length<6?`<div><button class="btn ghost" data-act="add-opt">+ Add answer</button></div>`:""}</div>
+        <div class="settings"><div class="field"><label for="qtime">Time to answer</label>
+          <select id="qtime" class="input" data-field="time">${TIMES.map(t=>`<option value="${t}" ${q.time===t?"selected":""}>${t<60?t+" seconds":(t/60)+" minute"+(t>60?"s":"")}</option>`).join("")}</select></div></div>
+        ${prob?`<p class="err">${esc(prob)}</p>`:""}
+      </section>
+    </div>
+    <div class="editor-foot">
+      <div class="row-actions">${d.id?`<button class="btn ghost danger" data-act="del-quiz">Delete quiz</button>`:""}</div>
+      <div class="row-actions">${S.draftErr?`<span class="err" style="align-self:center">${esc(S.draftErr)}</span>`:""}
+        <button class="btn" data-act="cancel-edit">Cancel</button><button class="btn primary" data-act="save-quiz">Save quiz</button></div>
+    </div></main>`);
+}
+async function saveQuiz(){
+  const d=S.draft;
+  d.title=d.title.trim();
+  if(!d.title){ S.draftErr="Give the quiz a title."; render(); return; }
+  if(!/^\d{6}$/.test(d.code)){ S.draftErr="The test number needs exactly 6 digits."; render(); return; }
+  const bad=d.questions.findIndex(q=>qProblem(q));
+  if(bad>=0){ d.sel=bad; S.draftErr="Question "+(bad+1)+" isn't finished."; render(); return; }
+  try{
+    const clash=await S.db.collection("quizzes").where("code","==",d.code).get();
+    if(clash.docs.some(x=>x.id!==d.id)){ S.draftErr="Another quiz already uses test number "+d.code+"."; render(); return; }
+    const id=d.id||rid();
+    const qs=[], answers=[];
+    d.questions.forEach(q=>{
+      const kept=[]; let corr=0;
+      q.options.forEach((o,i)=>{ if(o.trim()){ if(i===q.correct) corr=kept.length; kept.push(o.trim()); } });
+      qs.push({text:q.text.trim(), options:kept, time:q.time}); answers.push(corr);
+    });
+    await S.db.doc("keys/"+id).set({answers});
+    await S.db.doc("quizzes/"+id).set({title:d.title, code:d.code, questions:qs, updatedAt:Date.now()});
+    toast("Quiz saved."); openTrainerHome();
+  }catch(e){ S.draftErr="Couldn't save ("+(e.code||"error")+"). Try again."; render(); }
+}
+
+/* ============================================================
+   TRAINER: live session
+   ============================================================ */
+async function hostQuiz(qid, mode){
+  const [q,k]=await Promise.all([S.db.doc("quizzes/"+qid).get(), S.db.doc("keys/"+qid).get()]);
+  if(!q.exists||!k.exists){ toast("This quiz is missing its answers. Open it and save it again."); return; }
+  const quiz=q.data(), key=k.data().answers;
+  const sref=S.db.doc("sessions/"+quiz.code);
+  const existing=(await sref.get()).data();
+  let run;
+  if(mode==="resume" && existing && existing.quizId===qid && existing.status!=="ended"){ run=existing.run; }
+  else{
+    run=rid();
+    await sref.set({quizId:qid, title:quiz.title, run, status:"lobby", current:-1, total:quiz.questions.length,
+      q:null, startedAt:0, correct:null, dist:[], scores:{}, board:[], revealed:-1, updatedAt:Date.now()});
+  }
+  clearSubs();
+  S.host={qid, quiz, key, code:quiz.code, run, session:existing&&run===existing.run?existing:null, players:[], busy:false, qrFor:null};
+  S.view="host"; render();
+  S.subs.push(sref.onSnapshot(s=>{ if(!S.host) return; S.host.session=s.exists?s.data():null; render(); }, e=>toast("Live session disconnected ("+e.code+").")));
+  S.subs.push(S.db.collection("players").where("code","==",quiz.code).where("run","==",run).onSnapshot(snap=>{
+    if(!S.host) return;
+    S.host.players=snap.docs.map(d=>({uid:d.id, ...d.data()})).sort((a,b)=>(a.joinedAt||0)-(b.joinedAt||0));
+    const ses=S.host.session;
+    if(ses && ses.status==="question"){
+      updateAnsweredCount();
+      const n=S.host.players.length, a=answeredCount();
+      if(n>0 && a>=n) setTimeout(()=>reveal(), 900);
+    }else if(ses && ses.status==="lobby"){ render(); }
+  }, e=>toast("Couldn't load players ("+e.code+").")));
+  S.ticker=setInterval(tick, 250);
+}
+function answeredCount(){ const h=S.host, i=h.session?h.session.current:-1; return h.players.filter(p=>p.answers && p.answers[String(i)]).length; }
+function updateAnsweredCount(){ const el=document.getElementById("answered"); if(el) el.innerHTML=`<b>${answeredCount()}</b> of ${S.host.players.length} answered`; }
+async function hostUpdate(patch){
+  const h=S.host; if(!h||h.busy) return; h.busy=true;
+  try{ await S.db.doc("sessions/"+h.code).update({...patch, updatedAt:Date.now()}); return true; }
+  catch(e){ toast("Couldn't update the session ("+(e.code||"error")+")."); return false; }
+  finally{ h.busy=false; }
+}
+function unlock(i){
+  const q=S.host.quiz.questions[i];
+  S.host.revealedIdx=null;
+  hostUpdate({status:"question", current:i, q:{text:q.text, options:q.options, time:q.time}, startedAt:Date.now(), correct:null, dist:[]});
+}
+async function reveal(){
+  const h=S.host; if(!h) return; const s=h.session;
+  if(!s || s.status!=="question" || s.revealed===s.current || h.revealedIdx===s.current || h.busy) return;
+  h.revealedIdx=s.current;
+  const i=s.current, T=s.q.time*1000, correct=h.key[i], nOpt=s.q.options.length;
+  const dist=new Array(nOpt).fill(0);
+  const scores=clone(s.scores||{});
+  h.players.forEach(p=>{
+    const a=p.answers && p.answers[String(i)];
+    const prev=scores[p.uid] || {s:0, c:0, h:{}};
+    let pts=0, ans=null;
+    if(a && Number.isInteger(a.c) && a.c>=0 && a.c<nOpt){
+      dist[a.c]++; ans=a.c;
+      if(a.c===correct){ const ms=Math.max(0, Math.min(Number(a.ms)||T, T)); pts=Math.round(1000-500*ms/T); prev.c=(prev.c||0)+1; }
+    }
+    const hist={...(prev.h||{})}; hist[i]=pts;
+    scores[p.uid]={n:String(p.name||"Player").slice(0,30), s:(prev.s||0)+pts, c:prev.c||0, last:pts, a:ans, h:hist};
+  });
+  const arr=Object.entries(scores).sort((a,b)=>b[1].s-a[1].s || a[1].n.localeCompare(b[1].n));
+  let rank=0, prevS=null;
+  arr.forEach(([u,v],idx)=>{ if(v.s!==prevS){ rank=idx+1; prevS=v.s; } v.r=rank; });
+  const board=arr.slice(0,10).map(([u,v])=>({u, n:v.n, s:v.s, r:v.r}));
+  const ok=await hostUpdate({status:"reveal", correct, dist, scores, board, revealed:i, players:arr.length});
+  if(!ok) h.revealedIdx=null;
+}
+function viewHost(){
+  const h=S.host, s=h.session, quiz=h.quiz;
+  const total=quiz.questions.length;
+  let body="", actions="";
+  if(!s){ body=`<div class="center-msg"><div class="spinner"></div></div>`; }
+  else if(s.status==="lobby"){
+    body=`<div class="lobby">
+      <div><h1>Join at the link or scan the code, then enter this test number</h1>
+        <div class="tiles" aria-label="Test number ${esc(h.code)}">${h.code.split("").map(c=>`<div class="tile">${c}</div>`).join("")}</div>
+        <p class="join-how">Scan the QR code with a phone camera, or open HandsUp, choose <strong>Join as a student</strong> and type the number.</p></div>
+      <div><div class="qr-box" id="qr"></div><p class="qr-cap">Scan to join</p></div></div>
+      <div><p class="count" style="margin-bottom:12px">${h.players.length} ${h.players.length===1?"student has":"students have"} joined</p>
+      <div class="people">${h.players.map(p=>`<span class="person">${esc(p.name)}</span>`).join("")||`<span class="hint">Names appear here as students join.</span>`}</div></div>`;
+    actions=`<button class="btn primary big" data-act="unlock" data-i="0">Unlock question 1</button>`;
+  }
+  else if(s.status==="question"){
+    body=`<div class="q-head"><div><p class="q-num">Question ${s.current+1} of ${total}</p><h2 class="q-text">${esc(s.q.text)}</h2></div>
+      <div class="timer" id="host-timer" data-start="${s.startedAt}" data-len="${s.q.time}"><span>${s.q.time}</span></div></div>
+      <div class="host-opts">${s.q.options.map((o,i)=>`<div class="host-opt c${i}"><span class="l">${LETTERS[i]}</span><span>${esc(o)}</span></div>`).join("")}</div>`;
+    actions=`<p class="answered" id="answered" style="margin-right:auto"><b>${answeredCount()}</b> of ${h.players.length} answered</p><button class="btn primary big" data-act="reveal">Reveal answer</button>`;
+  }
+  else if(s.status==="reveal"){
+    const totalAns=(s.dist||[]).reduce((a,b)=>a+b,0), max=Math.max(1,...(s.dist||[0]));
+    const pct=totalAns? Math.round(100*((s.dist||[])[s.correct]||0)/totalAns):0;
+    body=`<div><p class="q-num">Question ${s.current+1} of ${total} · ${pct}% got it right</p><h2 class="q-text">${esc(s.q.text)}</h2></div>
+      <div class="bars">${s.q.options.map((o,i)=>`<div class="bar-row ${i===s.correct?"right":""}">
+        <div class="bar-label"><span class="l c${i}">${LETTERS[i]}</span><span>${esc(o)}${i===s.correct?` <span class="right-tag">✓ Correct</span>`:""}</span></div>
+        <div class="bar-track"><div class="bar-fill c${i}" data-w="${Math.round(100*((s.dist||[])[i]||0)/max)}" style="width:0"></div></div>
+        <div class="bar-n">${(s.dist||[])[i]||0}</div></div>`).join("")}</div>`;
+    actions = `<button class="btn big" data-act="board">Show leaderboard</button>` +
+      (s.current+1<total ? `<button class="btn primary big" data-act="unlock" data-i="${s.current+1}">Unlock question ${s.current+2}</button>`
+                         : `<button class="btn primary big" data-act="finish">Show final results</button>`);
+  }
+  else if(s.status==="board"){
+    body=boardHtml(s.board, null, "Leaderboard", false);
+    actions = s.current+1<total ? `<button class="btn primary big" data-act="unlock" data-i="${s.current+1}">Unlock question ${s.current+2}</button>`
+                                : `<button class="btn primary big" data-act="finish">Show final results</button>`;
+  }
+  else if(s.status==="ended"){
+    body=boardHtml(s.board, null, "Final results", true);
+    actions=`<button class="btn" data-act="export">Download results (CSV)</button><button class="btn primary big" data-act="home">Back to quizzes</button>`;
+  }
+  const endBtn = s && s.status!=="ended" ? `<button class="btn ghost danger" data-act="end-session">End session</button>` : "";
+  return shell(`<div class="stage">
+    <div class="stage-bar"><span class="title">${esc(quiz.title)}</span><span class="code-chip">${esc(h.code)}</span><span class="hint">${h.players.length} joined</span><span class="spacer"></span>${endBtn}<button class="btn ghost" data-act="home">Quizzes</button></div>
+    <main class="stage-body">${body}<div class="stage-actions">${actions}</div></main></div>`);
+}
+function afterHostRender(){
+  const h=S.host; if(!h) return;
+  const qr=document.getElementById("qr");
+  if(qr && window.QRCode){
+    try{ new QRCode(qr,{text:joinUrl(h.code), width:520, height:520, colorDark:"#161A33", colorLight:"#FFFFFF", correctLevel:QRCode.CorrectLevel.M}); }catch(e){}
+  }else if(qr){ qr.innerHTML=`<p class="hint" style="max-width:240px;text-align:center">Students can join with the test number.</p>`; const cap=qr.nextElementSibling; if(cap) cap.hidden=true; }
+  requestAnimationFrame(()=>document.querySelectorAll(".bar-fill[data-w]").forEach(el=>el.style.width=el.dataset.w+"%"));
+}
+function boardHtml(board, myUid, title, podium){
+  board=board||[];
+  if(!board.length) return `<div class="board"><h1>${esc(title)}</h1><p class="hint" style="text-align:center">No scores yet.</p></div>`;
+  let top="", rest=board;
+  if(podium && board.length>=3){
+    const p=[board[1],board[0],board[2]], cls=["p2","p1","p3"];
+    top=`<div class="podium">${p.map((x,i)=>`<div class="pod ${cls[i]}"><span class="nm">${esc(x.n)}</span><span class="sc">${x.s} pts</span><div class="block">${x.r}</div></div>`).join("")}</div>`;
+    rest=board.slice(3);
+  }
+  return `<div class="board"><h1>${esc(title)}</h1>${top}${rest.map(x=>`<div class="rank-row ${x.r===1?"top1":""} ${x.u===myUid?"me":""}"><span class="r">${x.r}</span><span class="nm">${esc(x.n)}${x.u===myUid?" (you)":""}</span><span class="sc">${x.s}</span></div>`).join("")}</div>`;
+}
+async function exportCsv(){
+  const h=S.host, s=h.session; if(!s) return;
+  const n=h.quiz.questions.length;
+  const rows=[["Rank","Name","Score","Correct",...Array.from({length:n},(_,i)=>"Q"+(i+1)+" points")]];
+  Object.values(s.scores||{}).sort((a,b)=>a.r-b.r).forEach(v=>rows.push([v.r, v.n, v.s, v.c, ...Array.from({length:n},(_,i)=>(v.h&&v.h[i]!=null)?v.h[i]:"")]));
+  const csv=rows.map(r=>r.map(c=>{ const t=String(c); return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; }).join(",")).join("\n");
+  const filename=(h.quiz.title||"quiz").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"-")+"-results.csv";
+  if(S.downloads){
+    try{ await S.downloads.save({filename, data:csv}); }catch(e){ if(e.code!=="declined") toast("Download isn't available here."); }
+  }else{
+    const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download=filename; a.click();
+  }
+}
+
+/* ============================================================
+   TRAINER SIGN-IN
+   ============================================================ */
+function openSignin(err=""){ clearSubs(); S.view="signin"; S.signinErr=err; render(); setTimeout(()=>{ const i=document.getElementById("em"); if(i) i.focus(); },50); }
+function viewSignin(){
+  return shell(`<div class="stu"><main class="stu-body"><div class="stu-center">
+    <div><h1>Trainer sign in</h1><p class="lead" style="margin-top:8px">Use a trainer account from your Firebase project.</p></div>
+    <form id="signin-form" class="field" novalidate>
+      <label for="em">Email</label><input id="em" type="email" class="input" autocomplete="username">
+      <label for="pw" style="margin-top:10px">Password</label><input id="pw" type="password" class="input" autocomplete="current-password">
+      ${S.signinErr?`<p class="err">${esc(S.signinErr)}</p>`:""}
+      <button class="btn primary big" type="submit" style="margin-top:12px">Sign in</button>
+    </form></div></main></div>`, {right:`<button class="btn ghost" data-act="re-enter">Join as a student</button>`});
+}
+async function trainerSignin(){
+  const em=document.getElementById("em").value.trim(), pw=document.getElementById("pw").value;
+  if(!em||!pw){ openSignin("Enter your email and password."); return; }
+  try{ clearHash(); await S.authMod.signInWithEmailAndPassword(S.auth, em, pw); }
+  catch(e){ openSignin(e.code==="auth/invalid-credential"||e.code==="auth/wrong-password"||e.code==="auth/user-not-found" ? "That email and password don't match a trainer account." : "Couldn't sign in ("+(e.code||"error")+")."); }
+}
+
+/* ============================================================
+   STUDENT
+   ============================================================ */
+function openStudentEntry(err=""){
+  clearSubs(); S.view="student-entry"; S.st={entryErr:err}; render();
+  setTimeout(()=>{ const i=document.getElementById("code-in"); if(i) i.focus(); },50);
+}
+function viewStudentEntry(){
+  const right=S.canHost?`<button class="btn ghost" data-act="home">Trainer dashboard</button>`:(S.demo?"":`<button class="btn ghost" data-act="trainer-signin">Trainer sign in</button>`);
+  return shell(`<div class="stu"><main class="stu-body"><div class="stu-center">
+    <div><h1>Join a quiz</h1><p class="lead" style="margin-top:8px">Scan the QR code on the trainer's screen with your phone camera, or type the test number.</p></div>
+    <form id="code-form" class="field" novalidate>
+      <label for="code-in">Test number</label>
+      <input id="code-in" class="input code-input" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="000000">
+      ${S.st.entryErr?`<p class="err">${esc(S.st.entryErr)}</p>`:""}
+      <button class="btn primary big" type="submit" style="margin-top:8px">Join</button>
+    </form></div></main></div>`, {right});
+}
+async function openStudent(code){
+  clearSubs(); S.view="student";
+  S.st={code, loaded:false, session:null, me:null, err:"", qIdx:-1, shownAt:0, nameDraft:""};
+  try{ S.st.nameDraft=localStorage.getItem("handsup-name")||""; }catch(e){}
+  render();
+  if(!S.uid){ S.st.loaded=true; S.st.err="noid"; render(); return; }
+  try{
+    const p=await S.db.doc("players/"+S.uid).get();
+    if(p.exists && p.data().code===code) S.st.me=p.data();
+  }catch(e){}
+  const loadTimer=setTimeout(()=>{ if(S.st && !S.st.loaded){ S.st.slow=true; render(); } },10000);
+  S.subs.push(S.db.doc("sessions/"+code).onSnapshot(snap=>{
+    if(!S.st || S.st.code!==code) return;
+    clearTimeout(loadTimer);
+    const s=snap.exists?snap.data():null;
+    S.st.loaded=true; S.st.slow=false; S.st.session=s;
+    if(s && s.status==="question" && s.current!==S.st.qIdx){
+      S.st.qIdx=s.current;
+      const T=s.q.time*1000, guess=Date.now()-s.startedAt;
+      const offset=(guess>1500 && guess<T)?guess:0;  // joined mid-question
+      S.st.shownAt=performance.now()-offset;
+    }
+    render();
+  }, e=>{ S.st.loaded=true; S.st.err="conn"; render(); }));
+  S.ticker=setInterval(tick,250);
+}
+function stuRemaining(){
+  const s=S.st.session; if(!s||!s.q) return 0;
+  return Math.max(0, s.q.time*1000 - (performance.now()-S.st.shownAt));
+}
+function viewStudent(){
+  const st=S.st, s=st.session, me=st.me;
+  const right=S.canHost?`<button class="btn ghost" data-act="home">Trainer dashboard</button>`:`<button class="btn ghost" data-act="leave">Leave</button>`;
+  const wrap=inner=>shell(`<div class="stu"><main class="stu-body">${inner}</main></div>`,{right});
+  if(!st.loaded) return wrap(`<div class="stu-center" style="text-align:center"><div class="spinner"></div><p class="hint">${st.slow?"Still connecting. Check your internet connection.":"Finding test "+esc(st.code)+"…"}</p></div>`);
+  if(st.err==="noid") return wrap(`<div class="stu-center"><h1>Couldn't connect</h1><p class="lead">Reload the page and try again.</p></div>`);
+  if(!s) return wrap(`<div class="stu-center"><h1>No live quiz for ${esc(st.code)}</h1><p class="lead">Check the number on the trainer's screen. The session may not have started yet.</p><button class="btn primary big" data-act="re-enter">Enter a different number</button></div>`);
+  const joined = me && me.run===s.run;
+  if(!joined){
+    if(s.status==="ended") return wrap(`<div class="stu-center"><h1>This quiz has finished</h1><p class="lead">${esc(s.title)} is over. Ask your trainer for the next test number.</p><button class="btn primary big" data-act="re-enter">Enter a different number</button></div>`);
+    return wrap(`<div class="stu-center"><div><p class="hint">Test ${esc(st.code)}</p><h1>${esc(s.title)}</h1></div>
+      <form id="name-form" class="field" novalidate><label for="name-in">Your name</label>
+      <input id="name-in" class="input" maxlength="24" autocomplete="nickname" value="${esc(st.nameDraft)}" placeholder="Name shown on the leaderboard">
+      ${st.err?`<p class="err">${esc(st.err)}</p>`:""}
+      <button class="btn primary big" type="submit" style="margin-top:8px">Join quiz</button></form></div>`);
+  }
+  const mine = s.scores && s.scores[S.uid];
+  if(s.status==="lobby") return wrap(`<div class="stu-center" style="text-align:center"><div class="wave" aria-hidden="true">✋</div><h1>You're in, ${esc(me.name)}</h1><p class="lead">Watch the trainer's screen. Question 1 appears here when it's unlocked.</p></div>`);
+  if(s.status==="question"){
+    const i=s.current, a=me.answers && me.answers[String(i)];
+    const rem=stuRemaining();
+    const head=`<div class="stu-q-meta"><span>Question ${i+1} of ${s.total}</span><span class="stu-timer" id="stu-timer">${Math.ceil(rem/1000)}</span></div><h2 class="stu-q">${esc(s.q.text)}</h2>`;
+    if(a) return wrap(`${head}<div class="stu-opts">${s.q.options.map((o,k)=>`<button class="stu-opt c${k} ${k===a.c?"picked":"dim"}" disabled><span class="l">${LETTERS[k]}</span><span>${esc(o)}</span></button>`).join("")}</div><p class="lead" style="text-align:center">Answer locked. Waiting for the results.</p>`);
+    if(rem<=0) return wrap(`${head}<div class="status-card"><span class="big">Time's up</span><p class="lead">You'll see the answer when the trainer reveals it.</p></div>`);
+    return wrap(`${head}<div class="stu-opts">${s.q.options.map((o,k)=>`<button class="stu-opt c${k}" data-act="answer" data-i="${k}"><span class="l">${LETTERS[k]}</span><span>${esc(o)}</span></button>`).join("")}</div>`);
+  }
+  if(s.status==="reveal"){
+    const i=s.current, a=me.answers && me.answers[String(i)];
+    const isRight=a && a.c===s.correct;
+    const card = !a ? `<div class="status-card"><span class="big">No answer</span><p class="lead">The correct answer was ${LETTERS[s.correct]}: ${esc(s.q.options[s.correct])}</p></div>`
+      : isRight ? `<div class="status-card ok"><span class="big">Correct</span><p class="lead">+${mine?mine.last:0} points</p></div>`
+      : `<div class="status-card bad"><span class="big">Not this time</span><p class="lead">The correct answer was ${LETTERS[s.correct]}: ${esc(s.q.options[s.correct])}</p></div>`;
+    return wrap(`<div class="stu-center">${card}${statsHtml(mine,s)}</div>`);
+  }
+  if(s.status==="board") return wrap(`${statsHtml(mine,s)}${boardHtml((s.board||[]).slice(0,5), S.uid, "Leaderboard", false)}<p class="hint" style="text-align:center">Next question coming up.</p>`);
+  if(s.status==="ended") return wrap(`<div class="status-card"><span class="hint">Final result</span><span class="big">${mine?ordinal(mine.r)+" place":"Thanks for playing"}</span>${mine?`<p class="lead">${mine.s} points · ${mine.c} of ${s.total} correct</p>`:""}</div>${boardHtml(s.board, S.uid, "Final results", false)}`);
+  return wrap("");
+}
+function statsHtml(mine,s){
+  if(!mine) return "";
+  return `<div class="stats"><div class="stat"><b>${mine.s}</b><span>points</span></div><div class="stat"><b>${ordinal(mine.r)}</b><span>of ${s.players||Object.keys(s.scores||{}).length}</span></div></div>`;
+}
+async function joinSession(name){
+  const st=S.st, s=st.session; name=name.trim().replace(/\s+/g," ");
+  if(!name){ st.err="Enter your name to join."; render(); return; }
+  try{ localStorage.setItem("handsup-name",name); }catch(e){}
+  const me={code:st.code, run:s.run, name, answers:{}, joinedAt:Date.now()};
+  try{ await S.db.doc("players/"+S.uid).set(me); st.me=me; st.err=""; render(); }
+  catch(e){ st.nameDraft=name; st.err = e.code==="permission-denied" ? "The quiz couldn't save your name. Ask your trainer to check the database rules." : "Couldn't join ("+(e.code||"error")+"). Try again."; render(); }
+}
+async function answer(k){
+  const st=S.st, s=st.session; if(!s||s.status!=="question") return;
+  const i=String(s.current);
+  if(st.me.answers && st.me.answers[i]) return;
+  if(stuRemaining()<=0) return;
+  const ms=Math.round(performance.now()-st.shownAt);
+  st.me.answers={...(st.me.answers||{}), [i]:{c:k, ms}};
+  render();
+  try{ await S.db.doc("players/"+S.uid).update({answers:{[i]:{c:k, ms}}}); }
+  catch(e){ delete st.me.answers[i]; render(); toast("Your answer didn't send. Tap it again."); }
+}
+
+/* ---------- timers ---------- */
+function tick(){
+  if(S.view==="host" && S.host && S.host.session && S.host.session.status==="question"){
+    const s=S.host.session, T=s.q.time*1000, rem=Math.max(0, T-(Date.now()-s.startedAt));
+    const el=document.getElementById("host-timer");
+    if(el){ el.style.setProperty("--p", (rem/T).toFixed(3)); el.classList.toggle("low", rem<=5000); el.firstElementChild.textContent=Math.ceil(rem/1000); }
+    if(rem<=0) reveal();
+  }
+  if(S.view==="student" && S.st && S.st.session && S.st.session.status==="question"){
+    const rem=stuRemaining(), el=document.getElementById("stu-timer");
+    if(el){ el.textContent=Math.ceil(rem/1000); el.classList.toggle("low", rem<=5000); }
+    const a=S.st.me && S.st.me.answers && S.st.me.answers[String(S.st.session.current)];
+    if(rem<=0 && !a && document.querySelector('[data-act="answer"]')) render();
+  }
+}
+
+/* ============================================================
+   Events
+   ============================================================ */
+document.addEventListener("click", e=>{
+  const el=e.target.closest("[data-act]"); if(!el || el.disabled) return;
+  const act=el.dataset.act, d=S.draft;
+  const i=el.dataset.i!==undefined?Number(el.dataset.i):null;
+  switch(act){
+    case "as-student": S.forceStudent=true; clearHash(); openStudentEntry(); break;
+    case "home": S.forceStudent=false; clearHash(); S.canHost?openTrainerHome():openStudentEntry(); break;
+    case "leave": case "re-enter": clearHash(); openStudentEntry(); break;
+    case "new-quiz": newDraft(); break;
+    case "edit-quiz": editQuiz(el.dataset.id); break;
+    case "host-quiz": hostQuiz(el.dataset.id, el.dataset.mode); break;
+    case "sel-q": d.sel=i; render(); break;
+    case "add-q": d.questions.push(blankQ()); d.sel=d.questions.length-1; render(); setTimeout(()=>{const t=document.getElementById("qq"); if(t) t.focus();},30); break;
+    case "del-q": d.questions.splice(d.sel,1); d.sel=Math.max(0,d.sel-1); render(); break;
+    case "move-q": { const j=d.sel+Number(el.dataset.dir); const q=d.questions; [q[d.sel],q[j]]=[q[j],q[d.sel]]; d.sel=j; render(); break; }
+    case "add-opt": d.questions[d.sel].options.push(""); render(); break;
+    case "del-opt": { const q=d.questions[d.sel]; q.options.splice(i,1); if(q.correct===i) q.correct=null; else if(q.correct>i) q.correct--; render(); break; }
+    case "regen-code": d.code=newCode(); render(); break;
+    case "cancel-edit": openTrainerHome(); break;
+    case "save-quiz": saveQuiz(); break;
+    case "del-quiz": delQuiz(el); break;
+    case "unlock": unlock(i); break;
+    case "reveal": reveal(); break;
+    case "board": hostUpdate({status:"board"}); break;
+    case "finish": hostUpdate({status:"ended"}); break;
+    case "end-session": if(el.dataset.sure){ hostUpdate({status:"ended"}); } else { el.dataset.sure="1"; el.textContent="Click again to end"; setTimeout(()=>{ if(el.isConnected){ delete el.dataset.sure; el.textContent="End session"; } },3000); } break;
+    case "export": exportCsv(); break;
+    case "trainer-signin": openSignin(); break;
+    case "sign-out": clearSubs(); S.canHost=false; S.authMod.signOut(S.auth); break;
+    case "answer": answer(i); break;
+  }
+});
+async function delQuiz(el){
+  if(!el.dataset.sure){ el.dataset.sure="1"; el.textContent="Click again to delete"; setTimeout(()=>{ if(el.isConnected){ delete el.dataset.sure; el.textContent="Delete quiz"; } },3000); return; }
+  const id=S.draft.id;
+  try{ await S.db.doc("quizzes/"+id).delete(); await S.db.doc("keys/"+id).delete(); toast("Quiz deleted."); openTrainerHome(); }
+  catch(e){ toast("Couldn't delete ("+(e.code||"error")+")."); }
+}
+document.addEventListener("change", e=>{
+  const el=e.target;
+  if(el.dataset.act==="set-correct"){ S.draft.questions[S.draft.sel].correct=Number(el.dataset.i); render(); }
+  if(el.dataset.field==="time"){ S.draft.questions[S.draft.sel].time=Number(el.value); }
+});
+document.addEventListener("input", e=>{
+  const el=e.target, f=el.dataset.field; if(!f || !S.draft) return;
+  const d=S.draft, q=d.questions[d.sel];
+  if(f==="title") d.title=el.value;
+  else if(f==="code"){ el.value=el.value.replace(/\D/g,"").slice(0,6); d.code=el.value; }
+  else if(f==="qtext"){ q.text=el.value; const t=document.querySelector(".qitem.on .t"); if(t){ t.textContent=el.value.trim()||"New question"; t.classList.toggle("blank",!el.value.trim()); } }
+  else if(f==="opt") q.options[Number(el.dataset.i)]=el.value;
+});
+document.addEventListener("submit", e=>{
+  e.preventDefault();
+  if(e.target.id==="code-form"){
+    const v=document.getElementById("code-in").value.replace(/\D/g,"");
+    if(v.length!==6){ openStudentEntry("Enter all 6 digits of the test number."); return; }
+    if(location.hash==="#join-"+v) openStudent(v); else location.hash="join-"+v;
+  }
+  if(e.target.id==="name-form"){ joinSession(document.getElementById("name-in").value); }
+  if(e.target.id==="signin-form"){ trainerSignin(); }
+});
+document.addEventListener("input", e=>{ if(e.target.id==="code-in") e.target.value=e.target.value.replace(/\D/g,"").slice(0,6); if(e.target.id==="name-in" && S.st) S.st.nameDraft=e.target.value; });
+
+init();
+</script>
+</body>
+</html>
